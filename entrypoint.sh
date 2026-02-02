@@ -1,26 +1,18 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -e
 
-echo "== Apache MPM state BEFORE =="
+echo "== MPM state BEFORE =="
 ls -la /etc/apache2/mods-enabled | grep mpm || true
-apache2ctl -M 2>/dev/null | grep mpm || true
 
-# Force single MPM: prefork
+# disable event/worker, enable prefork
 a2dismod mpm_event mpm_worker >/dev/null 2>&1 || true
 a2enmod mpm_prefork >/dev/null 2>&1 || true
 
-# Extra hard-force: remove any lingering mpm_*.load symlinks except prefork
-for f in /etc/apache2/mods-enabled/mpm_*.load /etc/apache2/mods-enabled/mpm_*.conf; do
-  [ -e "$f" ] || continue
-  case "$f" in
-    *mpm_prefork*) : ;;
-    *) rm -f "$f" ;;
-  esac
-done
+# hard remove lingering symlinks (just in case)
+rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf || true
+rm -f /etc/apache2/mods-enabled/mpm_worker.load /etc/apache2/mods-enabled/mpm_worker.conf || true
 
-echo "== Apache MPM state AFTER =="
+echo "== MPM state AFTER =="
 ls -la /etc/apache2/mods-enabled | grep mpm || true
-apache2ctl -M 2>/dev/null | grep mpm || true
 
-# Start the original container command
-exec "$@"
+exec apache2-foreground
