@@ -2,17 +2,23 @@ FROM mautic/mautic:7-apache
 
 USER root
 
-# folders/permissions (jouw eerdere fix)
+# Zorg dat je mappen bestaan (Railway volumes kunnen leeg zijn)
 RUN mkdir -p /var/www/html/var/logs /var/www/html/var/cache /var/www/html/docroot/media \
   && chown -R www-data:www-data /var/www/html/var /var/www/html/docroot/media
 
-# fix: apache MPM conflict
+# FIX 1: Forceer precies 1 Apache MPM
 RUN a2dismod mpm_event mpm_worker || true \
  && a2enmod mpm_prefork
 
-# fix: missing runtime lib for gd (AVIF)
+# FIX 2: GD runtime dependencies (voorkomt "Unable to load gd")
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libavif15 \
+ && apt-get install -y --no-install-recommends \
+      libxpm4 \
+      libavif15 \
+      libjpeg62-turbo \
+      libpng16-16 \
+      libwebp7 \
+      libfreetype6 \
  && rm -rf /var/lib/apt/lists/*
 
 USER www-data
