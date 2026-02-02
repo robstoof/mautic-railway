@@ -2,21 +2,24 @@ FROM mautic/mautic:7-apache
 
 USER root
 
-# (jouw bestaande map/perms fixes)
+# 1) Fix volumes/permissions
 RUN mkdir -p /var/www/html/var/logs /var/www/html/var/cache /var/www/html/docroot/media \
   && chown -R www-data:www-data /var/www/html/var /var/www/html/docroot/media
 
-# dependencies die je eerder miste (optioneel, maar goed)
+# 2) HARD FIX: ensure only ONE MPM is enabled
+RUN a2dismod mpm_event mpm_worker >/dev/null 2>&1 || true \
+ && rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf \
+ && a2enmod mpm_prefork >/dev/null 2>&1 || true
+
+# 3) Fix GD runtime deps (nu mis je libXpm.so.4)
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libxpm4 libavif15 \
+ && apt-get install -y --no-install-recommends \
+      libxpm4 \
+      libavif15 \
  && rm -rf /var/lib/apt/lists/*
 
-# add entrypoint
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
-
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["apache2-foreground"]
+# Optional: verify at build time (handig zolang je debugt)
+RUN ls -la /etc/apache2/mods-enabled | grep mpm || true
 
 USER www-data
 
