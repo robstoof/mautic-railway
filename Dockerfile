@@ -2,24 +2,21 @@ FROM mautic/mautic:7-apache
 
 USER root
 
-# Zorg dat je mappen bestaan (Railway volumes kunnen leeg zijn)
+# (jouw bestaande map/perms fixes)
 RUN mkdir -p /var/www/html/var/logs /var/www/html/var/cache /var/www/html/docroot/media \
   && chown -R www-data:www-data /var/www/html/var /var/www/html/docroot/media
 
-# FIX 1: Forceer precies 1 Apache MPM
-RUN a2dismod mpm_event mpm_worker || true \
- && a2enmod mpm_prefork
-
-# FIX 2: GD runtime dependencies (voorkomt "Unable to load gd")
+# dependencies die je eerder miste (optioneel, maar goed)
 RUN apt-get update \
- && apt-get install -y --no-install-recommends \
-      libxpm4 \
-      libavif15 \
-      libjpeg62-turbo \
-      libpng16-16 \
-      libwebp7 \
-      libfreetype6 \
+ && apt-get install -y --no-install-recommends libxpm4 libavif15 \
  && rm -rf /var/lib/apt/lists/*
+
+# add entrypoint
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["apache2-foreground"]
 
 USER www-data
 
