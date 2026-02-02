@@ -1,32 +1,25 @@
-ARG CACHE_BUST=1
-RUN echo "### CUSTOM MAUTIC BUILD MARKER: $CACHE_BUST ###" \
- && ls -la /etc/apache2/mods-enabled | grep mpm || true
-
-
 FROM mautic/mautic:7-apache
 
 USER root
 
-# 1) Fix volumes/permissions
+# marker om zeker te weten dat jouw build gebruikt wordt
+ARG CACHE_BUST=1
+RUN echo "### CUSTOM MAUTIC BUILD MARKER: $CACHE_BUST ###"
+
+# jouw folders/permissions
 RUN mkdir -p /var/www/html/var/logs /var/www/html/var/cache /var/www/html/docroot/media \
   && chown -R www-data:www-data /var/www/html/var /var/www/html/docroot/media
 
-# 2) HARD FIX: ensure only ONE MPM is enabled
-RUN a2dismod mpm_event mpm_worker >/dev/null 2>&1 || true \
- && rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf \
- && a2enmod mpm_prefork >/dev/null 2>&1 || true
-
-# 3) Fix GD runtime deps (nu mis je libXpm.so.4)
+# GD deps (anders blijf je warnings krijgen / later issues)
 RUN apt-get update \
- && apt-get install -y --no-install-recommends \
-      libxpm4 \
-      libavif15 \
+ && apt-get install -y --no-install-recommends libxpm4 libavif15 \
  && rm -rf /var/lib/apt/lists/*
 
-# Optional: verify at build time (handig zolang je debugt)
-RUN ls -la /etc/apache2/mods-enabled | grep mpm || true
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-USER www-data
+# BELANGRIJK: niet naar USER www-data terug, zodat we /etc/apache2 kunnen aanpassen
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 ARG MAUTIC_DB_HOST
 ARG MAUTIC_DB_USER
