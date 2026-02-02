@@ -1,3 +1,8 @@
+ARG CACHE_BUST=1
+RUN echo "### CUSTOM MAUTIC BUILD MARKER: $CACHE_BUST ###" \
+ && ls -la /etc/apache2/mods-enabled | grep mpm || true
+
+
 FROM mautic/mautic:7-apache
 
 USER root
