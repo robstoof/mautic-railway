@@ -15,7 +15,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends libxpm4 libavif15 \
  && rm -rf /var/lib/apt/lists/*
 
-COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # BELANGRIJK: niet naar USER www-data terug, zodat we /etc/apache2 kunnen aanpassen
